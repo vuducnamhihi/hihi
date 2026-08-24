@@ -1,0 +1,198 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  LANDLORD
+  TENANT
+  ADMIN
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum ContractStatus {
+  ACTIVE
+  PENDING
+  TERMINATED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  phoneNumber  String?       @unique @map("phone_number")
+  email        String?       @unique
+  fullName     String        @map("full_name")
+  avatarUrl    String?       @map("avatar_url")
+  role         Role          @default(TENANT)
+  fcmToken     String?       @map("fcm_token")
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  motels       Motel[]
+  contracts    Contract[]    @relation("TenantContracts")
+  invoices     Invoice[]     @relation("TenantInvoices")
+  appointments Appointment[] @relation("TenantAppointments")
+
+  @@index([phoneNumber])
+  @@index([email])
+  @@map("users")
+}
+
+model Motel {
+  id                   String   @id @default(uuid())
+  landlordId           String   @map("landlord_id")
+  name                 String
+  address              String
+  ward                 String
+  district             String
+  city                 String
+  electricityUnitPrice Decimal  @default(3500) @map("electricity_unit_price") @db.Decimal(10, 2)
+  waterUnitPrice        Decimal  @default(25000) @map("water_unit_price") @db.Decimal(10, 2)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  landlord             User     @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  rooms                Room[]
+
+  @@map("motels")
+}
+
+model Room {
+  id              String         @id @default(uuid())
+  motelId         String         @map("motel_id")
+  roomNumber      String         @map("room_number")
+  floor           Int            @default(1)
+  areaSqm         Float          @map("area_sqm")
+  basePrice       Decimal        @map("base_price") @db.Decimal(10, 2)
+  isSelfContained Boolean        @default(true) @map("is_self_contained")
+  status          RoomStatus     @default(AVAILABLE)
+  description     String?
+  amenities       String[]
+  images          String[]
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  motel           Motel          @relation(fields: [motelId], references: [id], onDelete: Cascade)
+  contracts       Contract[]
+  meterReadings   MeterReading[]
+  invoices        Invoice[]
+  appointments    Appointment[]
+
+  @@unique([motelId, roomNumber])
+  @@index([status, basePrice])
+  @@map("rooms")
+}
+
+model Contract {
+  id              String         @id @default(uuid())
+  roomId          String         @map("room_id")
+  tenantId        String         @map("tenant_id")
+  startDate       DateTime       @map("start_date")
+  endDate         DateTime       @map("end_date")
+  rentalPrice     Decimal        @map("rental_price") @db.Decimal(10, 2)
+  depositAmount   Decimal        @map("deposit_amount") @db.Decimal(10, 2)
+  paymentDay      Int            @default(5) @map("payment_day")
+  status          ContractStatus @default(ACTIVE)
+  contractFileUrl String?        @map("contract_file_url")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  room            Room           @relation(fields: [roomId], references: [id])
+  tenant          User           @relation("TenantContracts", fields: [tenantId], references: [id])
+  invoices        Invoice[]
+  meterReadings   MeterReading[]
+
+  @@map("contracts")
+}
+
+model MeterReading {
+  id             String   @id @default(uuid())
+  roomId         String   @map("room_id")
+  contractId     String   @map("contract_id")
+  periodMonth    Int      @map("period_month")
+  periodYear     Int      @map("period_year")
+  oldElectricity Int      @map("old_electricity")
+  newElectricity Int      @map("new_electricity")
+  oldWater       Int      @map("old_water")
+  newWater       Int      @map("new_water")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  room           Room     @relation(fields: [roomId], references: [id])
+  contract       Contract @relation(fields: [contractId], references: [id])
+
+  @@unique([roomId, periodMonth, periodYear])
+  @@map("meter_readings")
+}
+
+model Invoice {
+  id                String        @id @default(uuid())
+  contractId        String        @map("contract_id")
+  roomId            String        @map("room_id")
+  tenantId          String        @map("tenant_id")
+  periodMonth       Int           @map("period_month")
+  periodYear        Int           @map("period_year")
+  roomAmount        Decimal       @map("room_amount") @db.Decimal(10, 2)
+  electricityUsage  Int           @default(0) @map("electricity_usage")
+  electricityAmount Decimal       @default(0) @map("electricity_amount") @db.Decimal(10, 2)
+  waterUsage        Int           @default(0) @map("water_usage")
+  waterAmount       Decimal       @default(0) @map("water_amount") @db.Decimal(10, 2)
+  otherFees         Decimal       @default(0) @map("other_fees") @db.Decimal(10, 2)
+  totalAmount       Decimal       @map("total_amount") @db.Decimal(10, 2)
+  status            InvoiceStatus @default(DRAFT)
+  paymentProofUrl   String?       @map("payment_proof_url")
+  dueDate           DateTime      @map("due_date")
+  paidAt            DateTime?     @map("paid_at")
+  tenantNote        String?       @map("tenant_note")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  contract          Contract      @relation(fields: [contractId], references: [id])
+  room              Room          @relation(fields: [roomId], references: [id])
+  tenant            User          @relation("TenantInvoices", fields: [tenantId], references: [id])
+
+  @@unique([contractId, periodMonth, periodYear])
+  @@index([status, tenantId])
+  @@map("invoices")
+}
+
+model Appointment {
+  id             String            @id @default(uuid())
+  roomId         String            @map("room_id")
+  tenantId       String            @map("tenant_id")
+  scheduleTime   DateTime          @map("schedule_time")
+  status         AppointmentStatus @default(PENDING)
+  depositSlipUrl String?           @map("deposit_slip_url")
+  note           String?
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  room           Room              @relation(fields: [roomId], references: [id])
+  tenant         User              @relation("TenantAppointments", fields: [tenantId], references: [id])
+
+  @@map("appointments")
+}

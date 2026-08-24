@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: nhatro_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: nhatro_user
+      POSTGRES_PASSWORD: nhatro_password
+      POSTGRES_DB: nhatro_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nhatro_user -d nhatro_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis for BullMQ Queue & Caching
+  redis:
+    image: redis:7-alpine
+    container_name: nhatro_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. MinIO S3 Compatible Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: nhatro_minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Web Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 4. Backend NestJS (Optional Docker Runner)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nhatro_backend
+    restart: always
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://nhatro_user:nhatro_password@postgres:5432/nhatro_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadminpassword
+      MINIO_BUCKET: nhatro-storage
+      JWT_SECRET: supersecret_jwt_key_for_nhatro_system_2026
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
