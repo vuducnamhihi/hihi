@@ -59,7 +59,7 @@
             />
           </div>
           <div class="mt-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-            <p>Chủ TK: <strong class="text-slate-800 dark:text-white">NGUYEN VAN CHU TRO</strong></p>
+            <p>Chủ TK: <strong class="text-slate-800 dark:text-white">VU DUC NAM (0337877836)</strong></p>
             <p>Nội dung CK: <strong class="text-indigo-600 dark:text-indigo-400 font-mono">PHONG {{ invoice.room?.roomNumber || '101' }} T{{ invoice.periodMonth }}</strong></p>
           </div>
         </div>

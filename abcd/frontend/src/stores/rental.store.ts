@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
-import { Motel, Room, Contract, Invoice, RoomStatus } from '../types';
+import { Motel, Room, Contract, Invoice, RoomStatus, ProfileChangeRequest, ProfileData } from '../types';
 import { useAuthStore } from './auth.store';
+import { useNotificationStore } from './notification.store';
 
 const API_URL = 'http://localhost:3000';
 
@@ -21,11 +22,11 @@ const initialMotels: Motel[] = [
   {
     id: 'motel_02',
     landlordId: 'usr_landlord_01',
-    name: 'Nhà Trọ Cao Cấp Bình Thạnh',
-    address: '88/4 Nguyễn Gia Trí (D2 cũ)',
-    ward: 'Phường 25',
-    district: 'Bình Thạnh',
-    city: 'Hồ Chí Minh',
+    name: 'Nhà Trọ Cao Cấp 60 Lò Đúc',
+    address: '60 Lò Đúc',
+    ward: 'Phạm Đình Hổ',
+    district: 'Hai Bà Trưng',
+    city: 'Hà Nội',
     electricityUnitPrice: 4000,
     waterUnitPrice: 30000,
   },
@@ -81,13 +82,13 @@ const initialRooms: Room[] = [
   {
     id: 'room_a202',
     motelId: 'motel_02',
-    roomNumber: 'A202',
+    roomNumber: 'LD-202',
     floor: 2,
-    areaSqm: 32,
+    areaSqm: 35,
     basePrice: 5500000,
     isSelfContained: true,
     status: 'AVAILABLE',
-    description: 'Căn hộ dịch vụ cao cấp gần Đại học HUTECH, Ngoại Thương, an ninh 24/7.',
+    description: 'Căn hộ dịch vụ cao cấp 60 Lò Đúc, trung tâm Hai Bà Trưng, an ninh 24/7.',
     amenities: ['Full nội thất', 'Khóa điện tử', 'Thang máy', 'Camera an ninh', 'Chỗ để xe rộng'],
     images: [
       'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80',
@@ -154,7 +155,7 @@ const initialInvoices: Invoice[] = [
     totalAmount: 4200000 + 145 * 3800 + 6 * 28000 + 120000,
     status: 'PAYMENT_SUBMITTED',
     paymentProofUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
-    tenantNote: 'Em chuyển tiền qua Vietcombank lúc 19:30 rồi anh nhé.',
+    tenantNote: 'Em chuyển tiền qua Vietcombank lúc 19:30 rồi anh Nam nhé.',
     dueDate: '2026-08-05',
   },
   {
@@ -176,12 +177,54 @@ const initialInvoices: Invoice[] = [
   },
 ];
 
+const initialProfileRequests: ProfileChangeRequest[] = [
+  {
+    id: 'req_01',
+    tenantId: 'usr_tenant_01',
+    tenantName: 'Trần Thị Thuê Nhà',
+    roomNumber: '101',
+    motelName: 'Khu Trọ Xanh Cầu Giấy',
+    oldData: {
+      fullName: 'Trần Thị Thuê Nhà',
+      phoneNumber: '0912345678',
+      cccd: '001198012345',
+      dateOfBirth: '1998-05-15',
+      hometown: 'Nam Định',
+      job: 'Nhân viên văn phòng',
+      address: 'Phòng 101, Số 18, Ngõ 123 Xuân Thủy, Cầu Giấy, Hà Nội',
+    },
+    newData: {
+      fullName: 'Trần Thị Thu Giang',
+      phoneNumber: '0912345678',
+      cccd: '038198009999',
+      dateOfBirth: '1998-05-15',
+      hometown: 'TP. Nam Định, Tỉnh Nam Định',
+      job: 'Kế toán trưởng',
+      address: 'Phòng 101, Số 18, Ngõ 123 Xuân Thủy, Cầu Giấy, Hà Nội',
+      reason: 'Cập nhật lại họ tên chính xác theo CCCD gắn chip mới đổi và nâng cấp nghề nghiệp.',
+    },
+    status: 'PENDING',
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+];
+
 export const useRentalStore = defineStore('rental', () => {
   const authStore = useAuthStore();
+  const notificationStore = useNotificationStore();
+
   const motels = ref<Motel[]>(JSON.parse(JSON.stringify(initialMotels)));
   const rooms = ref<Room[]>(JSON.parse(JSON.stringify(initialRooms)));
   const contracts = ref<Contract[]>(JSON.parse(JSON.stringify(initialContracts)));
   const invoices = ref<Invoice[]>(JSON.parse(JSON.stringify(initialInvoices)));
+
+  const savedProfileReqs = localStorage.getItem('profile_requests');
+  const profileRequests = ref<ProfileChangeRequest[]>(
+    savedProfileReqs ? JSON.parse(savedProfileReqs) : initialProfileRequests
+  );
+
+  function persistProfileRequests() {
+    localStorage.setItem('profile_requests', JSON.stringify(profileRequests.value));
+  }
 
   // Axios instance with interceptor
   const api = axios.create({ baseURL: API_URL, timeout: 3000 });
@@ -211,12 +254,18 @@ export const useRentalStore = defineStore('rental', () => {
       const room = rooms.value.find((r) => r.id === inv.roomId);
       const motel = room ? motels.value.find((m) => m.id === room.motelId) : undefined;
       const contract = contracts.value.find((c) => c.id === inv.contractId);
+      const tenant = authStore.demoUsers.find((u) => u.id === inv.tenantId);
       return {
         ...inv,
         room: room ? { ...room, motel } : undefined,
         contract,
+        tenant: tenant || inv.tenant,
       };
     });
+  });
+
+  const pendingProfileRequestsCount = computed(() => {
+    return profileRequests.value.filter((r) => r.status === 'PENDING').length;
   });
 
   // Actions
@@ -366,6 +415,15 @@ export const useRentalStore = defineStore('rental', () => {
       inv.totalAmount = inv.roomAmount + inv.electricityAmount + inv.waterAmount + inv.otherFees;
       if (payload.approveImmediately) {
         inv.status = 'PENDING_PAYMENT';
+        // Gửi thông báo cho khách thuê
+        notificationStore.addNotification({
+          userId: inv.tenantId,
+          targetRole: 'TENANT',
+          title: `📄 Hóa đơn tiền phòng tháng ${inv.periodMonth}/${inv.periodYear}`,
+          content: `Chủ trọ Vũ Đức Nam đã phê duyệt hóa đơn tháng ${inv.periodMonth}/${inv.periodYear}. Tổng số tiền: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(inv.totalAmount)}. Hạn nộp: ${inv.dueDate}`,
+          type: 'INVOICE_NEW',
+          link: '/tenant/my-invoices',
+        });
       }
     }
   }
@@ -403,6 +461,16 @@ export const useRentalStore = defineStore('rental', () => {
         inv.paymentProofUrl =
           'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80';
       }
+
+      // Thông báo cho chủ trọ
+      const currentUserName = authStore.currentUser?.fullName || 'Khách thuê';
+      notificationStore.addNotification({
+        targetRole: 'LANDLORD',
+        title: '💵 Khách vừa gửi bill thanh toán',
+        content: `${currentUserName} đã tải lên ảnh bill chuyển khoản cho hóa đơn tháng ${inv.periodMonth}/${inv.periodYear}.`,
+        type: 'PAYMENT_SUBMITTED',
+        link: '/landlord/invoices?status=PAYMENT_SUBMITTED',
+      });
     }
   }
 
@@ -418,7 +486,105 @@ export const useRentalStore = defineStore('rental', () => {
     if (inv) {
       inv.status = 'PAID';
       inv.paidAt = new Date().toISOString();
+
+      // Thông báo cho khách thuê
+      notificationStore.addNotification({
+        userId: inv.tenantId,
+        targetRole: 'TENANT',
+        title: '🎉 Thanh toán hoàn tất',
+        content: `Chủ trọ Vũ Đức Nam đã xác nhận thu tiền hóa đơn tháng ${inv.periodMonth}/${inv.periodYear}. Cảm ơn bạn đã thanh toán đúng hạn!`,
+        type: 'PAYMENT_CONFIRMED',
+        link: '/tenant/my-invoices?status=PAID',
+      });
     }
+  }
+
+  // Chức năng: Người thuê gửi yêu cầu thay đổi thông tin
+  function submitProfileChangeRequest(payload: {
+    tenantId: string;
+    tenantName: string;
+    roomNumber: string;
+    motelName: string;
+    oldData: ProfileData;
+    newData: ProfileData & { reason?: string };
+  }) {
+    const newReq: ProfileChangeRequest = {
+      id: 'req_' + Date.now(),
+      tenantId: payload.tenantId,
+      tenantName: payload.tenantName,
+      roomNumber: payload.roomNumber,
+      motelName: payload.motelName,
+      oldData: payload.oldData,
+      newData: payload.newData,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+    profileRequests.value.unshift(newReq);
+    persistProfileRequests();
+
+    // Phát thông báo cho Chủ trọ (Vũ Đức Nam)
+    notificationStore.addNotification({
+      targetRole: 'LANDLORD',
+      title: '📝 Yêu cầu sửa thông tin khách thuê mới',
+      content: `${payload.tenantName} (Phòng ${payload.roomNumber} - ${payload.motelName}) vừa gửi yêu cầu sửa thông tin cá nhân. Vui lòng xem xét và phê duyệt.`,
+      type: 'PROFILE_REQUEST',
+      link: '/landlord/tenant-requests?status=PENDING',
+    });
+
+    return newReq;
+  }
+
+  // Chức năng: Chủ trọ phê duyệt yêu cầu
+  function approveProfileChangeRequest(requestId: string) {
+    const req = profileRequests.value.find((r) => r.id === requestId);
+    if (!req) return;
+
+    req.status = 'APPROVED';
+    req.reviewedAt = new Date().toISOString();
+    persistProfileRequests();
+
+    // Cập nhật thông tin thực tế của người thuê vào Auth Store
+    authStore.updateUserData(req.tenantId, {
+      fullName: req.newData.fullName,
+      phoneNumber: req.newData.phoneNumber,
+      cccd: req.newData.cccd,
+      dateOfBirth: req.newData.dateOfBirth,
+      hometown: req.newData.hometown,
+      job: req.newData.job,
+      address: req.newData.address,
+      email: req.newData.email,
+    });
+
+    // Phát thông báo cho Khách thuê
+    notificationStore.addNotification({
+      userId: req.tenantId,
+      targetRole: 'TENANT',
+      title: '✅ Yêu cầu sửa thông tin ĐÃ ĐƯỢC PHÊ DUYỆT',
+      content: `Chủ trọ Vũ Đức Nam đã chấp nhận yêu cầu cập nhật thông tin cá nhân của bạn. Thông tin mới đã được cập nhật chính thức vào hệ thống.`,
+      type: 'PROFILE_APPROVED',
+      link: '/tenant/my-room?openProfileModal=true&tab=HISTORY',
+    });
+  }
+
+  // Chức năng: Chủ trọ từ chối yêu cầu
+  function rejectProfileChangeRequest(requestId: string, rejectReason: string) {
+    const req = profileRequests.value.find((r) => r.id === requestId);
+    if (!req) return;
+
+    req.status = 'REJECTED';
+    req.rejectReason = rejectReason;
+    req.reviewedAt = new Date().toISOString();
+    persistProfileRequests();
+
+    // Phát thông báo cho Khách thuê
+    notificationStore.addNotification({
+      userId: req.tenantId,
+      targetRole: 'TENANT',
+      title: '❌ Yêu cầu sửa thông tin BỊ TỪ CHỐI',
+      content: `Chủ trọ Vũ Đức Nam đã từ chối yêu cầu cập nhật thông tin. Lý do: "${rejectReason || 'Thông tin chưa chính xác'}". Vui lòng kiểm tra lại.`,
+      type: 'PROFILE_REJECTED',
+      link: '/tenant/my-room?openProfileModal=true&tab=HISTORY',
+    });
   }
 
   async function triggerMonthlyBullMQJob(month: number, year: number) {
@@ -467,8 +633,10 @@ export const useRentalStore = defineStore('rental', () => {
     rooms,
     contracts,
     invoices,
+    profileRequests,
     enrichedRooms,
     enrichedInvoices,
+    pendingProfileRequestsCount,
     fetchLandlordData,
     fetchTenantData,
     addRoom,
@@ -478,6 +646,9 @@ export const useRentalStore = defineStore('rental', () => {
     updateAndApproveInvoice,
     submitPaymentProof,
     confirmPaymentSuccess,
+    submitProfileChangeRequest,
+    approveProfileChangeRequest,
+    rejectProfileChangeRequest,
     triggerMonthlyBullMQJob,
   };
 });

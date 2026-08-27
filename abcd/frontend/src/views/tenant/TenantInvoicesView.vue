@@ -105,23 +105,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { useRentalStore } from '../../stores/rental.store';
 import { Invoice, InvoiceStatus } from '../../types';
 import TenantBillPaymentModal from '../../components/TenantBillPaymentModal.vue';
 
+const route = useRoute();
 const authStore = useAuthStore();
 const rentalStore = useRentalStore();
 const selectedInvoice = ref<Invoice | null>(null);
 
 onMounted(() => {
   rentalStore.fetchTenantData();
+  checkRouteParams();
+});
+
+const checkRouteParams = () => {
+  if (route.query.invoiceId) {
+    const inv = rentalStore.enrichedInvoices.find(
+      (i) => i.id === route.query.invoiceId && i.tenantId === authStore.currentUser?.id,
+    );
+    if (inv) selectedInvoice.value = inv;
+  } else if (route.query.status === 'PENDING_PAYMENT') {
+    const pendingInv = rentalStore.enrichedInvoices.find(
+      (i) => i.tenantId === authStore.currentUser?.id && i.status === 'PENDING_PAYMENT',
+    );
+    if (pendingInv) selectedInvoice.value = pendingInv;
+  }
+};
+
+watch(() => route.query, () => {
+  checkRouteParams();
 });
 
 const myInvoices = computed(() => {
   return rentalStore.enrichedInvoices.filter(
-    (i) => i.tenantId === authStore.currentUser.id,
+    (i) => i.tenantId === authStore.currentUser?.id,
   );
 });
 

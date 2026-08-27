@@ -18,6 +18,61 @@ export interface User {
   fullName: string;
   role: Role;
   avatarUrl?: string;
+  cccd?: string;
+  dateOfBirth?: string;
+  hometown?: string;
+  job?: string;
+  address?: string;
+  email?: string;
+}
+
+export type ProfileRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface ProfileData {
+  fullName: string;
+  phoneNumber: string;
+  cccd?: string;
+  dateOfBirth?: string;
+  hometown?: string;
+  job?: string;
+  address?: string;
+  email?: string;
+  avatarUrl?: string;
+}
+
+export interface ProfileChangeRequest {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  roomNumber: string;
+  motelName: string;
+  oldData: ProfileData;
+  newData: ProfileData & { reason?: string };
+  status: ProfileRequestStatus;
+  rejectReason?: string;
+  createdAt: string;
+  reviewedAt?: string;
+}
+
+export type NotificationType =
+  | 'PROFILE_REQUEST'
+  | 'PROFILE_APPROVED'
+  | 'PROFILE_REJECTED'
+  | 'INVOICE_NEW'
+  | 'PAYMENT_SUBMITTED'
+  | 'PAYMENT_CONFIRMED'
+  | 'SYSTEM';
+
+export interface AppNotification {
+  id: string;
+  userId?: string;
+  targetRole?: Role | 'ALL';
+  title: string;
+  content: string;
+  type: NotificationType;
+  isRead: boolean;
+  createdAt: string;
+  link?: string;
 }
 
 export interface Motel {

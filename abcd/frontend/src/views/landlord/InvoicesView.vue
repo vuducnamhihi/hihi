@@ -132,18 +132,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useRentalStore } from '../../stores/rental.store';
 import { Invoice, InvoiceStatus } from '../../types';
 import LandlordInvoiceReviewModal from '../../components/LandlordInvoiceReviewModal.vue';
 
+const route = useRoute();
 const rentalStore = useRentalStore();
-const selectedStatus = ref<string>('ALL');
+const selectedStatus = ref<string>((route.query.status as string) || 'ALL');
 const selectedInvoice = ref<Invoice | null>(null);
 
 onMounted(() => {
   rentalStore.fetchLandlordData();
+  if (route.query.status) {
+    selectedStatus.value = route.query.status as string;
+  }
+  if (route.query.invoiceId) {
+    const inv = rentalStore.enrichedInvoices.find((i) => i.id === route.query.invoiceId);
+    if (inv) selectedInvoice.value = inv;
+  }
 });
+
+watch(
+  () => route.query.status,
+  (newStatus) => {
+    if (newStatus) {
+      selectedStatus.value = newStatus as string;
+    }
+  },
+);
+
+watch(
+  () => route.query.invoiceId,
+  (invId) => {
+    if (invId) {
+      const inv = rentalStore.enrichedInvoices.find((i) => i.id === invId);
+      if (inv) selectedInvoice.value = inv;
+    }
+  },
+);
 
 const statusFilters = [
   { label: 'Tất cả', value: 'ALL' },

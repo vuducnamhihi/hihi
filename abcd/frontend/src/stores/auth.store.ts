@@ -10,24 +10,38 @@ export const useAuthStore = defineStore('auth', () => {
   const demoUsers: User[] = [
     {
       id: 'usr_landlord_01',
-      phoneNumber: '0901234567',
-      fullName: 'Nguyễn Văn Chủ Trọ',
+      phoneNumber: '0337877836',
+      fullName: 'Vũ Đức Nam',
       role: 'LANDLORD',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+      address: '60 Lò Đúc, Hai Bà Trưng, Hà Nội',
+      email: 'nam.vuduc@nhatro.vn',
     },
     {
       id: 'usr_tenant_01',
       phoneNumber: '0912345678',
-      fullName: 'Trần Thị Thuê Nhà (Phòng 101)',
+      fullName: 'Trần Thị Thuê Nhà',
       role: 'TENANT',
       avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=256&q=80',
+      cccd: '001198012345',
+      dateOfBirth: '1998-05-15',
+      hometown: 'Nam Định',
+      job: 'Nhân viên văn phòng',
+      address: 'Phòng 101, Số 18, Ngõ 123 Xuân Thủy, Cầu Giấy, Hà Nội',
+      email: 'thuenha.tran@gmail.com',
     },
     {
       id: 'usr_tenant_02',
       phoneNumber: '0987654321',
-      fullName: 'Lê Văn An (Phòng 102)',
+      fullName: 'Lê Văn An',
       role: 'TENANT',
       avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=256&q=80',
+      cccd: '001199098765',
+      dateOfBirth: '1999-11-20',
+      hometown: 'Hải Phòng',
+      job: 'Kỹ sư phần mềm',
+      address: 'Phòng 102, Số 18, Ngõ 123 Xuân Thủy, Cầu Giấy, Hà Nội',
+      email: 'an.levan@gmail.com',
     },
   ];
 
@@ -71,11 +85,25 @@ export const useAuthStore = defineStore('auth', () => {
       return data.user;
     } catch (error: any) {
       console.error('Lỗi xác thực:', error);
-      if (error.response && error.response.data && error.response.data.message) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error('Lỗi kết nối đến máy chủ.');
+      // Fallback cho demo nếu server offline
+      const found = demoUsers.find((u) => u.phoneNumber === phoneNumber);
+      if (found) {
+        setUserSession(found, 'demo_jwt_token_' + found.id);
+        return found;
       }
+      if (phoneNumber) {
+        const newUser: User = {
+          id: 'usr_' + Date.now(),
+          phoneNumber,
+          fullName: fullName || (role === 'LANDLORD' ? 'Chủ Trọ Mới' : 'Khách Thuê Mới'),
+          role: role || 'TENANT',
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80',
+        };
+        demoUsers.push(newUser);
+        setUserSession(newUser, 'demo_jwt_token_' + newUser.id);
+        return newUser;
+      }
+      throw new Error('Số điện thoại không hợp lệ hoặc lỗi kết nối máy chủ.');
     }
   }
 
@@ -93,6 +121,17 @@ export const useAuthStore = defineStore('auth', () => {
     setUserSession(user, customToken || 'demo_jwt_token_' + user.id);
   }
 
+  function updateUserData(userId: string, data: Partial<User>) {
+    const userIndex = demoUsers.findIndex((u) => u.id === userId);
+    if (userIndex !== -1) {
+      demoUsers[userIndex] = { ...demoUsers[userIndex], ...data };
+    }
+    if (currentUser.value && currentUser.value.id === userId) {
+      currentUser.value = { ...currentUser.value, ...data };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser.value));
+    }
+  }
+
   function logout() {
     clearSession();
   }
@@ -104,6 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginOrRegister,
     switchUser,
     setCustomUser,
+    updateUserData,
     logout
   };
 });

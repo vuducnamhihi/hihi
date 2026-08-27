@@ -6,18 +6,22 @@
     <!-- Navigation Header cho Khách Thuê -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
       <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <!-- Brand / Title -->
         <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-lg text-white shadow-md shadow-emerald-600/20">
-            NT
+          <div class="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-1 shadow-sm shrink-0">
+            <img src="/logo.png" alt="BOPPY Logo" class="w-full h-full object-contain" />
           </div>
           <div>
-            <h1 class="font-extrabold text-base text-slate-900 tracking-tight leading-tight">Cổng Người Thuê</h1>
-            <p class="text-[11px] text-emerald-600 font-semibold">Tra cứu & Thanh toán tiền trọ</p>
+            <h1 class="font-extrabold text-base text-slate-900 tracking-tight leading-tight flex items-center space-x-1.5">
+              <span>BOPPY</span>
+              <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Khách Thuê</span>
+            </h1>
+            <p class="text-[11px] text-slate-500 font-semibold">Dịch vụ cho thuê phòng trọ</p>
           </div>
         </div>
 
         <!-- Tab Navigation -->
-        <nav class="flex items-center space-x-1 sm:space-x-2 text-sm font-semibold">
+        <nav class="hidden md:flex items-center space-x-1 sm:space-x-2 text-sm font-semibold">
           <router-link
             to="/tenant/my-invoices"
             class="flex items-center space-x-2 px-3.5 py-2 rounded-xl transition-all"
@@ -55,14 +59,55 @@
           </router-link>
         </nav>
 
-        <!-- User Profile Pill -->
-        <div class="hidden sm:flex items-center space-x-2.5 bg-slate-100 py-1.5 px-3 rounded-full">
-          <img
-            :src="authStore.currentUser.avatarUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=128&q=80'"
-            class="w-6 h-6 rounded-full object-cover"
-          />
-          <span class="text-xs font-bold text-slate-800">{{ authStore.currentUser.fullName.split(' ')[0] }}</span>
+        <!-- Right Side: Edit Profile Button + Notification + UserMenuDropdown -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Button Sửa Thông Tin Cá Nhân -->
+          <button
+            @click="showProfileModal = true"
+            class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition shadow-2xs"
+            title="Chỉnh sửa thông tin cá nhân (Cần chủ trọ duyệt)"
+          >
+            <span>✏️</span>
+            <span>Sửa Hồ Sơ</span>
+          </button>
+
+          <!-- Notification Dropdown -->
+          <NotificationDropdown />
+
+          <!-- User Menu Dropdown (Menu Phụ) -->
+          <UserMenuDropdown />
         </div>
+      </div>
+
+      <!-- Mobile Tab Bar -->
+      <div class="md:hidden flex border-t border-slate-100 px-2 py-1.5 bg-slate-50 justify-around text-xs font-bold">
+        <router-link
+          to="/tenant/my-invoices"
+          class="py-1 px-2.5 rounded-lg"
+          :class="$route.path.includes('my-invoices') ? 'bg-emerald-600 text-white' : 'text-slate-600'"
+        >
+          Hóa Đơn ({{ unpaidInvoicesCount }})
+        </router-link>
+        <router-link
+          to="/tenant/my-room"
+          class="py-1 px-2.5 rounded-lg"
+          :class="$route.path.includes('my-room') ? 'bg-emerald-600 text-white' : 'text-slate-600'"
+        >
+          Phòng Đang Thuê
+        </router-link>
+        <router-link
+          to="/tenant/explore"
+          class="py-1 px-2.5 rounded-lg"
+          :class="$route.path.includes('explore') ? 'bg-emerald-600 text-white' : 'text-slate-600'"
+        >
+          Tìm Phòng
+        </router-link>
+        <button
+          @click="showProfileModal = true"
+          class="py-1 px-2.5 rounded-lg bg-emerald-100 text-emerald-800"
+        >
+          ✏️ Sửa Hồ Sơ
+        </button>
       </div>
     </header>
 
@@ -70,17 +115,27 @@
     <main class="flex-1 max-w-6xl mx-auto w-full p-4 sm:p-6 md:p-8">
       <router-view />
     </main>
+
+    <!-- Modal sửa thông tin cá nhân -->
+    <TenantProfileEditModal
+      v-if="showProfileModal"
+      @close="showProfileModal = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import RoleSwitcherBar from '../components/RoleSwitcherBar.vue';
+import NotificationDropdown from '../components/NotificationDropdown.vue';
+import UserMenuDropdown from '../components/UserMenuDropdown.vue';
+import TenantProfileEditModal from '../components/TenantProfileEditModal.vue';
 import { useAuthStore } from '../stores/auth.store';
 import { useRentalStore } from '../stores/rental.store';
 
 const authStore = useAuthStore();
 const rentalStore = useRentalStore();
+const showProfileModal = ref(false);
 
 onMounted(() => {
   rentalStore.fetchTenantData();
@@ -88,7 +143,7 @@ onMounted(() => {
 
 const unpaidInvoicesCount = computed(() => {
   return rentalStore.invoices.filter(
-    (i) => i.tenantId === authStore.currentUser.id && i.status === 'PENDING_PAYMENT',
+    (i) => i.tenantId === authStore.currentUser?.id && i.status === 'PENDING_PAYMENT',
   ).length;
 });
 </script>

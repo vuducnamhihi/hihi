@@ -85,9 +85,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useAuthStore } from '../../stores/auth.store';
 import { useRentalStore } from '../../stores/rental.store';
 import ContractModal from '../../components/ContractModal.vue';
 
+const authStore = useAuthStore();
 const rentalStore = useRentalStore();
 const showContractModal = ref(false);
 
@@ -103,6 +105,8 @@ const contractsWithDetails = computed(() => {
 });
 
 const getTenantName = (tenantId: string) => {
+  const user = authStore.demoUsers.find((u) => u.id === tenantId);
+  if (user) return user.fullName;
   if (tenantId === 'usr_tenant_01') return 'Trần Thị Thuê Nhà';
   if (tenantId === 'usr_tenant_02') return 'Lê Văn An';
   return 'Khách Thuê #' + tenantId.slice(-4);

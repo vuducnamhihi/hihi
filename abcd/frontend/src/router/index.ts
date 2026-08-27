@@ -32,6 +32,11 @@ const routes: Array<RouteRecordRaw> = [
         name: 'LandlordContracts',
         component: () => import('../views/landlord/ContractsView.vue'),
       },
+      {
+        path: 'tenant-requests',
+        name: 'LandlordTenantRequests',
+        component: () => import('../views/landlord/TenantRequestsView.vue'),
+      },
     ],
   },
   // Phân hệ Khách thuê (Tenant)
