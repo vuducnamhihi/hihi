@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-slate-900 text-white px-4 py-2 text-xs flex flex-wrap items-center justify-between border-b border-slate-800 shadow-sm z-50">
+  <div v-if="authStore.currentUser" class="bg-slate-900 text-white px-4 py-2 text-xs flex flex-wrap items-center justify-between border-b border-slate-800 shadow-sm z-50">
     <div class="flex items-center space-x-3">
       <span class="flex h-2.5 w-2.5 relative">
         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -26,7 +26,7 @@
         @click="handleSwitch(user)"
         class="px-2.5 py-1 rounded-md text-xs font-medium transition-all"
         :class="
-          authStore.currentUser.id === user.id
+          authStore.currentUser?.id === user.id
             ? 'bg-white text-slate-900 font-bold shadow'
             : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
         "
