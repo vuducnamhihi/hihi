@@ -3,17 +3,23 @@
     <div class="max-w-md w-full bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-slate-700/40">
       
       <!-- Brand & Header -->
-      <div class="text-center space-y-3">
-        <div class="w-24 h-24 rounded-3xl bg-white flex items-center justify-center p-2.5 mx-auto shadow-xl ring-4 ring-indigo-500/20">
-          <img src="/logo.png" alt="BOPPY Logo" class="w-full h-full object-contain" />
-        </div>
-        <div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            BOPPY
-          </h2>
-          <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider">Dịch Vụ Cho Thuê Phòng Trọ</p>
-          <p class="text-[11px] text-slate-400 mt-1">Chủ trọ: <strong>Vũ Đức Nam (0337877836)</strong> • 60 Lò Đúc, Hà Nội</p>
-        </div>
+      <div class="text-center">
+        <router-link
+          to="/auth/login"
+          class="inline-block space-y-3 cursor-pointer group hover:opacity-95 transition select-none"
+          title="Trang Đăng Nhập BOPPY"
+        >
+          <div class="w-24 h-24 rounded-3xl bg-white flex items-center justify-center p-2.5 mx-auto shadow-xl ring-4 ring-indigo-500/20 group-hover:scale-105 transition-transform">
+            <img src="/logo.png" alt="BOPPY Logo" class="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              BOPPY
+            </h2>
+            <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider">Dịch Vụ Cho Thuê Phòng Trọ</p>
+            <p class="text-[11px] text-slate-400 mt-1">Chủ trọ: <strong>Vũ Đức Nam (0337877836)</strong> • 60 Lò Đúc, Hà Nội</p>
+          </div>
+        </router-link>
       </div>
 
       <!-- Chọn nhanh tài khoản Demo -->

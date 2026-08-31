@@ -54,18 +54,46 @@
       <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0">
         
         <!-- Photos Carousel / Image -->
-        <div class="lg:col-span-5 relative bg-slate-100 h-64 lg:h-auto min-h-[300px]">
+        <div class="lg:col-span-5 relative bg-slate-900 h-64 lg:h-auto min-h-[300px] overflow-hidden group">
           <img
-            :src="myContract.room?.images[0] || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80'"
-            class="w-full h-full object-cover"
+            :src="activePhoto"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+            @click="showGalleryModal = true"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6 text-white pointer-events-none">
             <span class="bg-emerald-500 text-white text-xs font-black px-3 py-1 rounded-full inline-block w-max mb-2 shadow-md">
               HỢP ĐỒNG ĐANG HIỆU LỰC
             </span>
             <h3 class="text-2xl font-black">Phòng {{ myContract.room?.roomNumber }}</h3>
             <p class="text-xs text-slate-200">{{ myContract.room?.motel?.name }}</p>
             <p class="text-[11px] text-slate-300">📍 {{ myContract.room?.motel?.address }}</p>
+          </div>
+
+          <!-- Bottom photo indicator & count -->
+          <button
+            type="button"
+            @click="showGalleryModal = true"
+            class="absolute top-4 right-4 px-2.5 py-1 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white text-xs font-bold shadow-md transition z-10"
+          >
+            📸 {{ myContract.room?.images?.length || 1 }} ảnh
+          </button>
+
+          <!-- Prev / Next slide buttons -->
+          <div v-if="myContract.room?.images && myContract.room.images.length > 1" class="absolute inset-y-0 inset-x-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition z-10 pointer-events-none">
+            <button
+              type="button"
+              @click.stop="prevPhoto"
+              class="w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-xs pointer-events-auto shadow-md"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              @click.stop="nextPhoto"
+              class="w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-xs pointer-events-auto shadow-md"
+            >
+              ▶
+            </button>
           </div>
         </div>
 
@@ -208,6 +236,64 @@
       :initialTab="profileModalTab"
       @close="showProfileModal = false"
     />
+
+    <!-- Lightbox Gallery Modal -->
+    <div
+      v-if="showGalleryModal && myContract?.room?.images"
+      @click="showGalleryModal = false"
+      class="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+    >
+      <div class="relative max-w-4xl w-full flex flex-col items-center justify-center" @click.stop>
+        <div class="w-full flex items-center justify-between text-white mb-3">
+          <div>
+            <h3 class="font-black text-lg">Ảnh Thực Tế Phòng {{ myContract.room?.roomNumber }}</h3>
+            <p class="text-xs text-slate-400">{{ myContract.room?.motel?.name }} · {{ activePhotoIndex + 1 }} / {{ myContract.room?.images.length }} ảnh</p>
+          </div>
+          <button
+            @click="showGalleryModal = false"
+            class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
+          >
+            ✕ Đóng
+          </button>
+        </div>
+
+        <div class="relative w-full h-[65vh] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10 shadow-2xl">
+          <img
+            :src="myContract.room.images[activePhotoIndex]"
+            class="max-h-full max-w-full object-contain"
+          />
+
+          <button
+            v-if="myContract.room.images.length > 1"
+            type="button"
+            @click="prevPhoto"
+            class="absolute left-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+          >
+            ◀
+          </button>
+          <button
+            v-if="myContract.room.images.length > 1"
+            type="button"
+            @click="nextPhoto"
+            class="absolute right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+          >
+            ▶
+          </button>
+        </div>
+
+        <div v-if="myContract.room.images.length > 1" class="flex gap-2 mt-3 overflow-x-auto p-1 max-w-full">
+          <div
+            v-for="(img, idx) in myContract.room.images"
+            :key="idx"
+            @click="activePhotoIndex = idx"
+            class="h-16 w-20 rounded-xl overflow-hidden cursor-pointer border-2 transition shrink-0"
+            :class="activePhotoIndex === idx ? 'border-indigo-500 scale-105' : 'border-transparent opacity-60 hover:opacity-100'"
+          >
+            <img :src="img" class="w-full h-full object-cover" />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -223,6 +309,8 @@ const authStore = useAuthStore();
 const rentalStore = useRentalStore();
 const showProfileModal = ref(false);
 const profileModalTab = ref<'FORM' | 'HISTORY'>('FORM');
+const showGalleryModal = ref(false);
+const activePhotoIndex = ref(0);
 
 onMounted(() => {
   if (route.query.openProfileModal === 'true') {
@@ -255,6 +343,26 @@ const myContract = computed(() => {
   const room = rentalStore.enrichedRooms.find((r) => r.id === c.roomId);
   return { ...c, room };
 });
+
+const activePhoto = computed(() => {
+  const images = myContract.value?.room?.images;
+  if (!images || images.length === 0) {
+    return 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80';
+  }
+  return images[activePhotoIndex.value % images.length] || images[0];
+});
+
+const prevPhoto = () => {
+  const images = myContract.value?.room?.images;
+  if (!images || images.length === 0) return;
+  activePhotoIndex.value = (activePhotoIndex.value - 1 + images.length) % images.length;
+};
+
+const nextPhoto = () => {
+  const images = myContract.value?.room?.images;
+  if (!images || images.length === 0) return;
+  activePhotoIndex.value = (activePhotoIndex.value + 1) % images.length;
+};
 
 const pendingRequest = computed(() => {
   return rentalStore.profileRequests.find(

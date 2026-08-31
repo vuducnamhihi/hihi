@@ -6,9 +6,13 @@
     <!-- Navigation Header cho Khách Thuê -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
       <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <!-- Brand / Title -->
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-1 shadow-sm shrink-0">
+        <!-- Brand / Title (Click to return to Home) -->
+        <router-link
+          to="/tenant/my-invoices"
+          class="flex items-center space-x-3 group cursor-pointer hover:opacity-90 transition select-none"
+          title="Về Trang Chủ Khách Thuê"
+        >
+          <div class="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-1 shadow-sm shrink-0 group-hover:scale-105 transition-transform">
             <img src="/logo.png" alt="BOPPY Logo" class="w-full h-full object-contain" />
           </div>
           <div>
@@ -18,7 +22,7 @@
             </h1>
             <p class="text-[11px] text-slate-500 font-semibold">Dịch vụ cho thuê phòng trọ</p>
           </div>
-        </div>
+        </router-link>
 
         <!-- Tab Navigation -->
         <nav class="hidden md:flex items-center space-x-1 sm:space-x-2 text-sm font-semibold">

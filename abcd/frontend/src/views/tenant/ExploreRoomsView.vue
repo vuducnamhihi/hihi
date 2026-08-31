@@ -8,7 +8,7 @@
         </span>
         <h2 class="text-2xl sm:text-3xl font-black tracking-tight">Tìm Phòng Trọ Ưng Ý Ngay Hôm Nay</h2>
         <p class="text-slate-300 text-sm mt-1">
-          Hệ sinh thái phòng trọ tiện nghi, minh bạch giá điện nước, an ninh 24/7.
+          Hệ sinh thái phòng trọ tiện nghi, hình ảnh thực tế 100%, minh bạch giá điện nước, an ninh 24/7.
         </p>
       </div>
 
@@ -39,7 +39,7 @@
         <div class="flex items-center">
           <button
             @click="resetFilters"
-            class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition"
+            class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow-xs"
           >
             Xóa bộ lọc
           </button>
@@ -50,8 +50,11 @@
     <!-- Available Room Cards Grid -->
     <div>
       <div class="flex items-center justify-between mb-4">
-        <h3 class="font-extrabold text-base text-slate-800">
-          Danh Sách Phòng Trống ({{ filteredRooms.length }} phòng)
+        <h3 class="font-extrabold text-base text-slate-800 flex items-center space-x-2">
+          <span>Danh Sách Phòng Trống</span>
+          <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black border border-emerald-200">
+            {{ filteredRooms.length }} phòng
+          </span>
         </h3>
       </div>
 
@@ -59,18 +62,46 @@
         <div
           v-for="room in filteredRooms"
           :key="room.id"
-          class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+          class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-xl transition-all transform hover:-translate-y-1 group"
         >
           <div>
-            <!-- Image & Badges -->
-            <div class="relative h-48 bg-slate-100 overflow-hidden">
-              <img :src="room.images[0]" class="w-full h-full object-cover" />
-              <span class="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-black px-3 py-1 rounded-full shadow-md">
+            <!-- Image Carousel & Badges -->
+            <div class="relative h-52 bg-slate-900 overflow-hidden cursor-pointer" @click="openGallery(room)">
+              <img
+                :src="getRoomActiveImage(room)"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              
+              <span class="absolute top-3 left-3 bg-emerald-600 text-white text-xs font-black px-3 py-1 rounded-full shadow-md z-10">
                 CÒN TRỐNG
               </span>
-              <span class="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-xs font-bold">
+              <span class="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-xs font-bold z-10">
                 {{ room.areaSqm }} m²
               </span>
+
+              <!-- Photo Count & View Full Gallery Button -->
+              <div class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-sm text-white text-xs font-bold flex items-center space-x-1 shadow-md z-10">
+                <span>📸 {{ room.images?.length || 0 }} ảnh</span>
+                <span class="text-indigo-300 ml-1">· Xem album</span>
+              </div>
+
+              <!-- Slide Switchers on Card -->
+              <div v-if="room.images && room.images.length > 1" class="absolute inset-y-0 inset-x-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition z-10 pointer-events-none">
+                <button
+                  type="button"
+                  @click.stop="prevRoomImage(room.id, room.images.length)"
+                  class="w-7 h-7 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-xs pointer-events-auto shadow-md"
+                >
+                  ◀
+                </button>
+                <button
+                  type="button"
+                  @click.stop="nextRoomImage(room.id, room.images.length)"
+                  class="w-7 h-7 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-xs pointer-events-auto shadow-md"
+                >
+                  ▶
+                </button>
+              </div>
             </div>
 
             <!-- Details -->
@@ -117,11 +148,73 @@
         </div>
       </div>
     </div>
+
+    <!-- Lightbox Photo Gallery Modal for Tenants -->
+    <div
+      v-if="galleryModalOpen && selectedGalleryRoom"
+      @click="galleryModalOpen = false"
+      class="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+    >
+      <div class="relative max-w-4xl w-full flex flex-col items-center justify-center" @click.stop>
+        <!-- Top bar with title and close button -->
+        <div class="w-full flex items-center justify-between text-white mb-3">
+          <div>
+            <h3 class="font-black text-lg">Ảnh Thực Tế Phòng {{ selectedGalleryRoom.roomNumber }}</h3>
+            <p class="text-xs text-slate-400">{{ selectedGalleryRoom.motel?.name }} · {{ activeGalleryIndex + 1 }} / {{ selectedGalleryRoom.images?.length || 1 }} ảnh</p>
+          </div>
+          <button
+            @click="galleryModalOpen = false"
+            class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
+          >
+            ✕ Đóng
+          </button>
+        </div>
+
+        <!-- Main Photo Viewer with prev/next arrows -->
+        <div class="relative w-full h-[65vh] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10 shadow-2xl">
+          <img
+            :src="selectedGalleryRoom.images[activeGalleryIndex]"
+            class="max-h-full max-w-full object-contain"
+          />
+
+          <button
+            v-if="selectedGalleryRoom.images.length > 1"
+            type="button"
+            @click="activeGalleryIndex = (activeGalleryIndex - 1 + selectedGalleryRoom.images.length) % selectedGalleryRoom.images.length"
+            class="absolute left-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+          >
+            ◀
+          </button>
+          <button
+            v-if="selectedGalleryRoom.images.length > 1"
+            type="button"
+            @click="activeGalleryIndex = (activeGalleryIndex + 1) % selectedGalleryRoom.images.length"
+            class="absolute right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-lg font-bold shadow-lg"
+          >
+            ▶
+          </button>
+        </div>
+
+        <!-- Bottom Thumbnails Strip -->
+        <div v-if="selectedGalleryRoom.images.length > 1" class="flex gap-2 mt-3 overflow-x-auto p-1 max-w-full">
+          <div
+            v-for="(img, idx) in selectedGalleryRoom.images"
+            :key="idx"
+            @click="activeGalleryIndex = idx"
+            class="h-16 w-20 rounded-xl overflow-hidden cursor-pointer border-2 transition shrink-0"
+            :class="activeGalleryIndex === idx ? 'border-indigo-500 scale-105' : 'border-transparent opacity-60 hover:opacity-100'"
+          >
+            <img :src="img" class="w-full h-full object-cover" />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, reactive, computed } from 'vue';
+import { Room } from '../../types';
 import { useRentalStore } from '../../stores/rental.store';
 
 const rentalStore = useRentalStore();
@@ -129,6 +222,14 @@ const rentalStore = useRentalStore();
 const filterCity = ref('');
 const filterMaxPrice = ref<number>(0);
 const filterSelfContained = ref('');
+
+// Tracking active image index on room cards
+const activeImageIndexMap = reactive<Record<string, number>>({});
+
+// Gallery modal state
+const galleryModalOpen = ref(false);
+const selectedGalleryRoom = ref<Room | null>(null);
+const activeGalleryIndex = ref(0);
 
 const filteredRooms = computed(() => {
   return rentalStore.enrichedRooms.filter((r) => {
@@ -145,6 +246,30 @@ const filteredRooms = computed(() => {
 
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+};
+
+const getRoomActiveImage = (room: Room) => {
+  if (!room.images || room.images.length === 0) {
+    return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80';
+  }
+  const currentIndex = activeImageIndexMap[room.id] || 0;
+  return room.images[currentIndex % room.images.length] || room.images[0];
+};
+
+const prevRoomImage = (roomId: string, length: number) => {
+  const current = activeImageIndexMap[roomId] || 0;
+  activeImageIndexMap[roomId] = (current - 1 + length) % length;
+};
+
+const nextRoomImage = (roomId: string, length: number) => {
+  const current = activeImageIndexMap[roomId] || 0;
+  activeImageIndexMap[roomId] = (current + 1) % length;
+};
+
+const openGallery = (room: Room) => {
+  selectedGalleryRoom.value = room;
+  activeGalleryIndex.value = activeImageIndexMap[room.id] || 0;
+  galleryModalOpen.value = true;
 };
 
 const resetFilters = () => {

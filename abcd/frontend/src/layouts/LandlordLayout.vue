@@ -1,14 +1,18 @@
 <template>
-  <div class="min-h-screen bg-slate-100 flex flex-col">
-    <!-- Top Role Switcher Bar -->
-    <RoleSwitcherBar />
+  <div class="min-h-screen md:h-screen bg-slate-100 flex flex-col md:overflow-hidden">
+    <!-- Top Role Switcher Bar (Cố định trên cùng) -->
+    <RoleSwitcherBar class="shrink-0 z-50 sticky top-0 md:static" />
 
-    <div class="flex-1 flex flex-col md:flex-row">
-      <!-- Sidebar Chủ Trọ -->
-      <aside class="w-full md:w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shrink-0 shadow-xl">
+    <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden min-h-0">
+      <!-- Sidebar Chủ Trọ (Đứng im cố định bên trái, không bị cuộn trôi theo trang) -->
+      <aside class="w-full md:w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shrink-0 shadow-xl md:h-full md:overflow-y-auto z-40">
         <div class="space-y-6">
-          <div class="flex items-center space-x-3">
-            <div class="w-11 h-11 rounded-2xl bg-white flex items-center justify-center p-1 shadow-lg shadow-indigo-500/20 shrink-0">
+          <router-link
+            to="/landlord/invoices"
+            class="flex items-center space-x-3 group cursor-pointer hover:opacity-90 transition select-none"
+            title="Về Trang Chủ Chủ Trọ"
+          >
+            <div class="w-11 h-11 rounded-2xl bg-white flex items-center justify-center p-1 shadow-lg shadow-indigo-500/20 shrink-0 group-hover:scale-105 transition-transform">
               <img src="/logo.png" alt="BOPPY Logo" class="w-full h-full object-contain" />
             </div>
             <div>
@@ -18,7 +22,7 @@
               </h1>
               <p class="text-[11px] text-indigo-300 font-medium">Bảng Điều Khiển Chủ Trọ</p>
             </div>
-          </div>
+          </router-link>
 
           <!-- Navigation Links -->
           <nav class="space-y-1.5 text-sm font-semibold">
@@ -91,8 +95,8 @@
           </div>
         </div>
 
-        <!-- Landlord Info Footer & Quick Logout -->
-        <div class="pt-4 border-t border-slate-800 space-y-3">
+        <!-- Landlord Info Footer & Quick Logout (Chỗ đăng nhập/tài khoản cố định) -->
+        <div class="pt-4 mt-6 border-t border-slate-800 space-y-3 shrink-0">
           <div class="flex items-center space-x-3">
             <img
               :src="authStore.currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=128&q=80'"
@@ -117,10 +121,10 @@
         </div>
       </aside>
 
-      <!-- Main Area with Top Header Bar -->
-      <div class="flex-1 flex flex-col min-w-0">
+      <!-- Main Area with Top Header Bar (Khu vực nội dung cuộn độc lập) -->
+      <div class="flex-1 flex flex-col min-w-0 md:overflow-y-auto">
         <!-- Topbar Header -->
-        <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-xs">
+        <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-xs shrink-0">
           <div>
             <span class="text-xs text-slate-400 font-semibold block">BOPPY • Quản Lý Nhà Trọ Vũ Đức Nam</span>
             <h2 class="text-base font-extrabold text-slate-900 leading-tight">

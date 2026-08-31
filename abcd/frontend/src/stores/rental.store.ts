@@ -330,6 +330,88 @@ export const useRentalStore = defineStore('rental', () => {
     rooms.value.push(created);
   }
 
+  async function updateRoom(roomId: string, data: Partial<Room>) {
+    try {
+      const res = await api.put(`/rooms/${roomId}`, data);
+      if (res.data) {
+        await fetchLandlordData();
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend call failed, applying locally');
+    }
+    const idx = rooms.value.findIndex((r) => r.id === roomId);
+    if (idx !== -1) {
+      rooms.value[idx] = { ...rooms.value[idx], ...data };
+    }
+  }
+
+  async function updateRoomImages(roomId: string, images: string[]) {
+    try {
+      const res = await api.put(`/rooms/${roomId}/images`, { images });
+      if (res.data) {
+        await fetchLandlordData();
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend call failed, applying locally');
+    }
+    const r = rooms.value.find((item) => item.id === roomId);
+    if (r) {
+      r.images = [...images];
+    }
+  }
+
+  async function uploadRoomImages(roomId: string, files: File[]) {
+    if (!files || files.length === 0) return [];
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('images', file);
+      });
+      const res = await api.post(`/rooms/${roomId}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.newUrls) {
+        await fetchLandlordData();
+        return res.data.newUrls;
+      }
+    } catch (error) {
+      console.warn('Backend upload failed, generating local object URLs fallback');
+    }
+
+    // Local Storage / Fallback
+    const localUrls = files.map((file) => URL.createObjectURL(file));
+    const r = rooms.value.find((item) => item.id === roomId);
+    if (r) {
+      r.images = [...(r.images || []), ...localUrls];
+    }
+    return localUrls;
+  }
+
+  async function deleteRoomImage(roomId: string, imageUrl: string) {
+    try {
+      await api.delete(`/rooms/${roomId}/images`, { data: { imageUrl } });
+      await fetchLandlordData();
+      return;
+    } catch (error) {
+      console.warn('Backend call failed, applying locally');
+    }
+    const r = rooms.value.find((item) => item.id === roomId);
+    if (r && r.images) {
+      r.images = r.images.filter((img) => img !== imageUrl);
+    }
+  }
+
+  async function setRoomCoverImage(roomId: string, imageUrl: string) {
+    const r = rooms.value.find((item) => item.id === roomId);
+    if (r && r.images) {
+      const otherImages = r.images.filter((img) => img !== imageUrl);
+      const reordered = [imageUrl, ...otherImages];
+      await updateRoomImages(roomId, reordered);
+    }
+  }
+
   async function updateRoomStatus(roomId: string, status: RoomStatus) {
     try {
       await api.put(`/rooms/${roomId}/status`, { status });
@@ -640,6 +722,11 @@ export const useRentalStore = defineStore('rental', () => {
     fetchLandlordData,
     fetchTenantData,
     addRoom,
+    updateRoom,
+    updateRoomImages,
+    uploadRoomImages,
+    deleteRoomImage,
+    setRoomCoverImage,
     updateRoomStatus,
     addContract,
     terminateContract,
